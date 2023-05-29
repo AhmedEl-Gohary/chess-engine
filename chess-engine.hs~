@@ -1,4 +1,6 @@
 import Data.Char (ord, chr)
+import Data.List (find)
+import Data.Maybe (fromJust, isJust)
 
 -- Initial Chess Board
 --     a    b    c    d    e    f    g    h
@@ -67,8 +69,58 @@ setBoard = (White, whitePieces, blackPieces)
                    Q ('d', 8), B ('c', 8), N ('b', 8), R ('a', 8),
                    P ('b', 7), P ('c', 7), P ('d', 7), P ('e', 7),
                    P ('f', 7), P ('a', 7), P ('g', 7), P ('h', 7)]
-    
 
+
+visualizeBoard :: Board -> String
+visualizeBoard (player, whitePieces, blackPieces) = 
+    let
+        -- Define the rows and columns of the chess board
+        rows = [8,7..1]
+        columns = ['a'..'h']
+        
+        -- Combine the white and black pieces into a single list
+        pieces = whitePieces ++ blackPieces
+        
+        -- Define a function to find the piece at a given location on the board
+        pieceAt loc = find (\p -> location p == loc) pieces
+        
+        -- Define a function to convert a piece to its string representation
+        showPiece (Just (P _)) = "P"
+        showPiece (Just (N _)) = "N"
+        showPiece (Just (K _)) = "K"
+        showPiece (Just (Q _)) = "Q"
+        showPiece (Just (R _)) = "R"
+        showPiece (Just (B _)) = "B"
+        showPiece Nothing = " "
+        
+        -- Define a function to convert a player to its string representation
+        showPlayer p | p `elem` whitePieces = 'W'
+                     | otherwise = 'B'
+        
+        -- Define a function to convert a cell on the board to its string representation
+        showCell loc | isJust piece = showPiece piece ++ [showPlayer $ fromJust piece]
+                     | otherwise = "  "
+            where piece = pieceAt loc
+        
+        -- Generate the string representation of the entire board
+        boardString = unlines $ map (\r -> show r ++ " |" ++ concatMap (\c -> ' ' : showCell (c,r) ++ " |") columns) rows
+    in
+    -- Return the final string representation of the board with row and column labels and player turn indicator
+    "    a    b    c    d    e    f    g    h\n" ++ boardString ++ "\nTurn: " ++ show player
+
+
+location :: Piece -> Location
+location (P loc) = loc
+location (N loc) = loc
+location (K loc) = loc
+location (Q loc) = loc
+location (R loc) = loc
+location (B loc) = loc
+
+main = do
+    let board = setBoard
+    let boardString = visualizeBoard board
+    putStrLn boardString
 
 -- takes as input a piece and a board and outputs a list of possible legal moves
 suggestMove:: Piece -> Board -> [Location]
@@ -115,6 +167,23 @@ suggestMove (N (char , int) ) board = p1 ++ p2 ++ p3 ++ p4 ++ p5 ++ p6 ++ p7 ++ 
     p7 = helperMove ((changeColumn char 1), int - 2) board 0 0 sourceColor 1
     p8 = helperMove ((changeColumn char (-1)), int - 2) board 0 0 sourceColor 1
 
+-- check all possible moves for a pawn
+-- clear romves any piece of the enemy type in the forward move
+-- since the method move will consider it a ligall move but it is not
+-- in case of black all directions are reversed due to the view and the logic of the helper methods
+suggestMove (P location) board = forward ++ forwardright ++ forwardleft
+  where 
+    forward | (cellType location board) == 1 && secondRow location = clear 2 (moveUp location board 1 2) board
+      | (cellType location board) == 1  = clear 2 (moveUp location board 1 1) board
+      | seventhRow location = clear 1 (moveDown location board 2  2) board
+      | otherwise = clear 1 (moveDown location board 2  1) board
+    forwardright | (cellType location board) == 1 &&  length (upRight location board 1 1) == 1 && cellType ( (upRight location board 1 1) !! 0) board /= 0 = upRight location board 1 1
+       | (cellType location board) == 2 && length (downLeft location board 2 1) == 1 && cellType ((downLeft location board 2 1) !! 0) board  /= 0 = downLeft location board 2 1
+       |otherwise = []
+    forwardleft | (cellType location board) == 1 &&  length (upLeft location board 1 1) /= 0  && cellType ( ( upLeft location board 1 1) !! 0) board /= 0 = upLeft location board 1 1
+       |(cellType location board) == 2 &&  length (downRight location board 2 1) /= 0 && cellType (( downRight location board 2 1) !! 0) board /= 0 = downRight location board 2 1
+       | otherwise = []
+
 
 -- takes a piece, board and a location 
 -- returns whether it is legal to move the piece to that location
@@ -156,7 +225,7 @@ isValidLocation (char, int) = int >= 1 && int <= 8 && (validChar char)
 -- checks if a char is between 'a' and 'h' inclusive
 validChar :: Char -> Bool
 validChar char = code >= 97 && code <= 104
-			where code = ord char
+   where code = ord char
 
 
 -- takes location returns 0 if cell at given location is empty, 
@@ -213,9 +282,9 @@ oppositePlayer White = Black
 updateList :: Piece -> Location -> [Piece] -> [Piece]
 updateList piece location [] = []
 updateList piece location (firstPiece : rest)
-	| piece == firstPiece = (setLocation piece location) : rest
-	| getLocation firstPiece == location = rest
-	| otherwise = firstPiece : updateList piece location rest
+  | piece == firstPiece = (setLocation piece location) : rest
+  | getLocation firstPiece == location = rest
+  | otherwise = firstPiece : updateList piece location rest
 
 
     
@@ -298,9 +367,61 @@ downLeft :: Location -> Board -> Int -> Int -> [Location]
 downLeft (column, row) board sourceColor moves =
     helperMove ((changeColumn column (-1)), row - 1) board (-1) (-1) sourceColor moves
 
+-- takes a loctaion and checks whether it is in the second row
+secondRow (_ , 2) = True
+secondRow _ = False
+
+-- takes a loctaion and checks whether it is in  row 7
+seventhRow (_ , 7) = True
+seventhRow _ = False
 
 
 
+-- this function removes locations from a list that holds a specific piece
+
+clear t list board = [x | x <- list , cellType x board  /= t] 
+
+
+
+--- different boards to test the code with
+
+board1 = (White, whitePieces, blackPieces)
+  where
+    whitePieces = [R ('h', 1), N ('g', 1), B ('f', 1), K ('e', 1),
+                   Q ('d', 1), B ('c', 1), N ('b', 1), R ('a', 1),
+                   P ('b', 2), P ('c', 2), P ('d', 2), P ('e', 2), 
+                   P ('f', 2), P ('a', 2), P ('g', 2), P ('h', 2)]
+                   
+    blackPieces = [R ('h', 8), N ('g', 8), B ('f', 8), K ('e', 8), 
+                   Q ('d', 8), B ('c', 8), N ('b', 8), R ('a', 8),
+                   P ('b', 7), P ('c', 7), P ('d', 7), P ('e', 7),
+                   P ('f', 7), P ('a', 7), P ('g', 7), P ('h', 7)]
+
+
+
+board2 = (White, whitePieces, blackPieces)
+  where
+    whitePieces = [R ('h', 1), N ('g', 1), B ('f', 1), K ('e', 1),
+                   Q ('d', 1), B ('c', 1), N ('b', 1), R ('a', 1),
+                   P ('b', 2), P ('c', 2), P ('d', 2), P ('e', 2), 
+                   P ('f', 2), P ('a', 2), P ('g', 2), P ('h', 2)]
+                   
+    blackPieces = [R ('h', 8), N ('g', 8), B ('f', 8), K ('e', 8), 
+                   Q ('d', 8), B ('c', 8), N ('b', 8), R ('a', 8),
+                   P ('b', 7), P ('c', 7), P ('d', 7), P ('e', 7),
+                   P ('f', 7), P ('a', 7), P ('g', 7), P ('h', 7)]
+
+board3 = (White, whitePieces, blackPieces)
+  where
+    whitePieces = [R ('h', 1), N ('g', 1), B ('f', 1), K ('e', 1),
+                   Q ('d', 1), B ('c', 1), N ('b', 1), R ('a', 1),
+                   P ('b', 2), P ('c', 4), P ('d', 4), P ('e', 4), 
+                   P ('f', 2), P ('a', 2), P ('g', 2), P ('h', 4)]
+                   
+    blackPieces = [R ('h', 8), N ('g', 8), B ('f', 8), K ('e', 8), 
+                   Q ('d', 8), B ('c', 8), N ('b', 8), R ('a', 8),
+                   P ('b', 7), P ('c', 5), P ('d', 5), P ('e', 5),
+                   P ('f', 7), P ('a', 7), P ('g', 5), P ('h', 5)]
 
 
 

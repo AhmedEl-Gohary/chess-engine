@@ -1,4 +1,6 @@
 import Data.Char (ord, chr)
+import Data.List (find)
+import Data.Maybe (fromJust, isJust)
 
 -- Initial Chess Board
 --     a    b    c    d    e    f    g    h
@@ -67,8 +69,58 @@ setBoard = (White, whitePieces, blackPieces)
                    Q ('d', 8), B ('c', 8), N ('b', 8), R ('a', 8),
                    P ('b', 7), P ('c', 7), P ('d', 7), P ('e', 7),
                    P ('f', 7), P ('a', 7), P ('g', 7), P ('h', 7)]
-    
 
+
+visualizeBoard :: Board -> String
+visualizeBoard (player, whitePieces, blackPieces) = 
+    let
+        -- Define the rows and columns of the chess board
+        rows = [8,7..1]
+        columns = ['a'..'h']
+        
+        -- Combine the white and black pieces into a single list
+        pieces = whitePieces ++ blackPieces
+        
+        -- Define a function to find the piece at a given location on the board
+        pieceAt loc = find (\p -> location p == loc) pieces
+        
+        -- Define a function to convert a piece to its string representation
+        showPiece (Just (P _)) = "P"
+        showPiece (Just (N _)) = "N"
+        showPiece (Just (K _)) = "K"
+        showPiece (Just (Q _)) = "Q"
+        showPiece (Just (R _)) = "R"
+        showPiece (Just (B _)) = "B"
+        showPiece Nothing = " "
+        
+        -- Define a function to convert a player to its string representation
+        showPlayer p | p `elem` whitePieces = 'W'
+                     | otherwise = 'B'
+        
+        -- Define a function to convert a cell on the board to its string representation
+        showCell loc | isJust piece = showPiece piece ++ [showPlayer $ fromJust piece]
+                     | otherwise = "  "
+            where piece = pieceAt loc
+        
+        -- Generate the string representation of the entire board
+        boardString = unlines $ map (\r -> show r ++ " |" ++ concatMap (\c -> ' ' : showCell (c,r) ++ " |") columns) rows
+    in
+    -- Return the final string representation of the board with row and column labels and player turn indicator
+    "    a    b    c    d    e    f    g    h\n" ++ boardString ++ "\nTurn: " ++ show player
+
+
+location :: Piece -> Location
+location (P loc) = loc
+location (N loc) = loc
+location (K loc) = loc
+location (Q loc) = loc
+location (R loc) = loc
+location (B loc) = loc
+
+main = do
+    let board = setBoard
+    let boardString = visualizeBoard board
+    putStrLn boardString
 
 -- takes as input a piece and a board and outputs a list of possible legal moves
 suggestMove:: Piece -> Board -> [Location]
