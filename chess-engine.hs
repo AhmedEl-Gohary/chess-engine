@@ -71,8 +71,11 @@ setBoard = (White, whitePieces, blackPieces)
                    P ('f', 7), P ('a', 7), P ('g', 7), P ('h', 7)]
 
 
-visualizeBoard :: Board -> String
-visualizeBoard (player, whitePieces, blackPieces) = 
+visualizeBoard :: Board -> IO ()
+visualizeBoard board = putStrLn (visualizeBoardHelper board)
+
+visualizeBoardHelper :: Board -> String
+visualizeBoardHelper (player, whitePieces, blackPieces) = 
     let
         -- Define the rows and columns of the chess board
         rows = [8,7..1]
@@ -82,7 +85,7 @@ visualizeBoard (player, whitePieces, blackPieces) =
         pieces = whitePieces ++ blackPieces
         
         -- Define a function to find the piece at a given location on the board
-        pieceAt loc = find (\p -> location p == loc) pieces
+        pieceAt loc = find (\p -> getLocation p == loc) pieces
         
         -- Define a function to convert a piece to its string representation
         showPiece (Just (P _)) = "P"
@@ -94,7 +97,7 @@ visualizeBoard (player, whitePieces, blackPieces) =
         showPiece Nothing = " "
         
         -- Define a function to convert a player to its string representation
-        showPlayer p | p `elem` whitePieces = 'W'
+        showPlayer p | elem p whitePieces = 'W'
                      | otherwise = 'B'
         
         -- Define a function to convert a cell on the board to its string representation
@@ -108,24 +111,11 @@ visualizeBoard (player, whitePieces, blackPieces) =
     -- Return the final string representation of the board with row and column labels and player turn indicator
     "    a    b    c    d    e    f    g    h\n" ++ boardString ++ "\nTurn: " ++ show player
 
-
-location :: Piece -> Location
-location (P loc) = loc
-location (N loc) = loc
-location (K loc) = loc
-location (Q loc) = loc
-location (R loc) = loc
-location (B loc) = loc
-
-main = do
-    let board = setBoard
-    let boardString = visualizeBoard board
-    putStrLn boardString
     
 -- takes as input a piece and a board and outputs a list of possible legal moves
 suggestMove:: Piece -> Board -> [Location]    
 suggestMove piece (player, white, black)	
-    | ( not (elem piece white)) && ( not (elem piece black)) = error "Balabizo"
+    | (not (elem piece white)) && (not (elem piece black)) = error "Balabizo"
     | otherwise = suggestMoveHelper piece (player, white, black) 
 
 -- takes as input a piece and a board and outputs a list of possible legal moves
