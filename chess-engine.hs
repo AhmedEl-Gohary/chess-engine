@@ -121,18 +121,24 @@ main = do
     let board = setBoard
     let boardString = visualizeBoard board
     putStrLn boardString
+    
+-- takes as input a piece and a board and outputs a list of possible legal moves
+suggestMove:: Piece -> Board -> [Location]    
+suggestMove piece (player, white, black)	
+    | ( not (elem piece white)) && ( not (elem piece black)) = error "Balabizo"
+    | otherwise = suggestMoveHelper piece (player, white, black) 
 
 -- takes as input a piece and a board and outputs a list of possible legal moves
-suggestMove:: Piece -> Board -> [Location]
+suggestMoveHelper:: Piece -> Board -> [Location]
 
 -- check all possible moves for a Bishop (diagonals)
-suggestMove (B location) board = d1 ++ d2
+suggestMoveHelper (B location) board = d1 ++ d2
   where 
     d1 = mainDiagonal location board (cellType location board) 8
     d2 = antiDiagonal location board  (cellType location board) 8
     
 -- check all possible moves for a King (verical + horizontal but once)
-suggestMove (K location) board = vertical ++ horizontal ++ d1 ++ d2
+suggestMoveHelper (K location) board = vertical ++ horizontal ++ d1 ++ d2
   where
     d1 = mainDiagonal location board (cellType location board) 1
     d2 = antiDiagonal location board (cellType location board) 1
@@ -141,21 +147,21 @@ suggestMove (K location) board = vertical ++ horizontal ++ d1 ++ d2
    
 
 -- check all possible moves for a Queen (Bishop + Rook)
-suggestMove (Q location) board = axialMove ++ diagonalMove 
+suggestMoveHelper (Q location) board = axialMove ++ diagonalMove 
   where
-    axialMove = suggestMove (R location) board
-    diagonalMove = suggestMove (B location) board
+    axialMove = suggestMoveHelper (R location) board
+    diagonalMove = suggestMoveHelper (B location) board
     
 
 -- check all possible moves for a Rook (vertical + horizontal)
-suggestMove (R location) board = vertical ++ horizontal
+suggestMoveHelper (R location) board = vertical ++ horizontal
   where
     vertical = verticalMove location board (cellType location board) 8
     horizontal = horizontalMove location board (cellType location board) 8
    
 -- check all possible moves for a Knight (L shape)
 -- p stands for point
-suggestMove (N (char , int) ) board = p1 ++ p2 ++ p3 ++ p4 ++ p5 ++ p6 ++ p7 ++ p8
+suggestMoveHelper (N (char , int) ) board = p1 ++ p2 ++ p3 ++ p4 ++ p5 ++ p6 ++ p7 ++ p8
   where 
     sourceColor = cellType (char , int) board
     p1 = helperMove ((changeColumn char 2), int + 1) board 0 0 sourceColor 1
@@ -171,7 +177,7 @@ suggestMove (N (char , int) ) board = p1 ++ p2 ++ p3 ++ p4 ++ p5 ++ p6 ++ p7 ++ 
 -- clear romves any piece of the enemy type in the forward move
 -- since the method move will consider it a ligall move but it is not
 -- in case of black all directions are reversed due to the view and the logic of the helper methods
-suggestMove (P location) board = forward ++ forwardright ++ forwardleft
+suggestMoveHelper (P location) board = forward ++ forwardright ++ forwardleft
   where 
     forward | (cellType location board) == 1 && secondRow location = clear 2 (moveUp location board 1 2) board
       | (cellType location board) == 1  = clear 2 (moveUp location board 1 1) board
@@ -385,17 +391,17 @@ clear t list board = [x | x <- list , cellType x board  /= t]
 
 --- different boards to test the code with
 
-board1 = (White, whitePieces, blackPieces)
+board1 = (Black, whitePieces, blackPieces)
   where
-    whitePieces = [R ('h', 1), N ('g', 1), B ('f', 1), K ('e', 1),
+    whitePieces = [R ('h', 1), N ('g', 1), B ('f', 1), K ('d', 3),
                    Q ('d', 1), B ('c', 1), N ('b', 1), R ('a', 1),
-                   P ('b', 2), P ('c', 2), P ('d', 2), P ('e', 2), 
-                   P ('f', 2), P ('a', 2), P ('g', 2), P ('h', 2)]
+                   P ('b', 2), P ('c', 2), P ('d', 5), P ('e', 2), 
+                   P ('f', 6), P ('a', 2), P ('g', 2), P ('h', 3)]
                    
     blackPieces = [R ('h', 8), N ('g', 8), B ('f', 8), K ('e', 8), 
                    Q ('d', 8), B ('c', 8), N ('b', 8), R ('a', 8),
-                   P ('b', 7), P ('c', 7), P ('d', 7), P ('e', 7),
-                   P ('f', 7), P ('a', 7), P ('g', 7), P ('h', 7)]
+                   P ('b', 7), P ('c', 7), P ('d', 7), P ('e', 6),
+                   P ('f', 7), P ('a', 7), P ('g', 7), P ('h', 4)]
 
 
 
@@ -422,8 +428,6 @@ board3 = (White, whitePieces, blackPieces)
                    Q ('d', 8), B ('c', 8), N ('b', 8), R ('a', 8),
                    P ('b', 7), P ('c', 5), P ('d', 5), P ('e', 5),
                    P ('f', 7), P ('a', 7), P ('g', 5), P ('h', 5)]
-
-
 
 
 
